@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Agente de Tránsito — Subir Multa (PDF)</title>
+  <style>
+    body{font-family:Inter,Arial,Helvetica,sans-serif;background:#f6f7f9;color:#111;margin:0;padding:40px}
+    .card{max-width:700px;margin:40px auto;background:#fff;border-radius:8px;box-shadow:0 6px 24px rgba(22,23,24,.08);padding:32px}
+    h1{margin:0 0 12px;font-size:22px}
+    p.lead{margin:0 0 20px;color:#555}
+    label{display:block;margin-bottom:8px;font-weight:600}
+    .row{display:flex;gap:12px}
+    input[type=file]{padding:6px}
+    button{background:#0b5fff;color:#fff;border:0;padding:10px 16px;border-radius:6px;font-weight:600;cursor:pointer}
+    .note{margin-top:12px;color:#666;font-size:13px}
+    .result{margin-top:16px;padding:12px;border-radius:6px;background:#f3f6ff;color:#0b3fff}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Subir multa en PDF</h1>
+    <p class="lead">Formulario formal y ejecutivo para subir su multa. El archivo se enviará al endpoint seguro configurado para despliegue en Vercel.</p>
+
+    <label for="pdf">Adjunte el PDF de la multa</label>
+    <input id="pdf" type="file" accept="application/pdf" />
+
+    <div style="margin-top:16px">
+      <button id="upload">Subir PDF</button>
+    </div>
+
+    <div class="note">Formato aceptado: PDF. Tamaño máximo: según configuración del servidor.</div>
+
+    <div id="out" class="result" style="display:none"></div>
+  </div>
+
+  <script>
+    const input = document.getElementById('pdf');
+    const btn = document.getElementById('upload');
+    const out = document.getElementById('out');
+
+    btn.addEventListener('click', async ()=>{
+      if(!input.files || input.files.length===0){ alert('Seleccione un PDF'); return }
+      const file = input.files[0];
+      if(file.type !== 'application/pdf'){ alert('El archivo debe ser PDF'); return }
+
+      out.style.display='block'; out.textContent='Preparando archivo...';
+      const reader = new FileReader();
+      reader.onload = async ()=>{
+        const base64 = reader.result.split(',')[1];
+        out.textContent='Subiendo...';
+        try{
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({filename: file.name, data: base64})
+          });
+          const j = await res.json();
+          if(res.ok) out.textContent = 'Subido con éxito. Ruta temporal: ' + (j.path||'')
+          else out.textContent = 'Error: ' + (j.error||'Respuesta no OK')
+        }catch(e){ out.textContent = 'Error de red: '+e.message }
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+</html>
