@@ -6,7 +6,7 @@ async function callOpenAI(extractedText) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return null;
 
-  const maxSnippet = extractedText.slice(0, 30000); // safety cap
+  const maxSnippet = extractedText.slice(0, 30000);
   const systemPrompt = `Eres un asistente formal que resume y analiza multas de tránsito. Devuelve: 1) Resumen ejecutivo (3-5 líneas). 2) Posibles infracciones detectadas. 3) Siguientes pasos recomendados (legales y prácticos). Sé claro y directo.`;
 
   const body = {
@@ -35,6 +35,42 @@ async function callOpenAI(extractedText) {
 
   const j = await resp.json();
   return j?.choices?.[0]?.message?.content || null;
+}
+
+async function callHuggingFace(extractedText) {
+  const token = process.env.HUGGINGFACE_HUB_TOKEN;
+  if (!token) return null;
+  const model = process.env.HUGGINGFACE_MODEL || 'gpt2';
+  const url = `https://api-inference.huggingface.co/models/${model}`;
+  const maxSnippet = extractedText.slice(0, 30000);
+  const payload = {
+    inputs: `Resume y analiza esta multa de tránsito (3-5 líneas resumen, infracciones detectadas, pasos recomendados):\n\n${maxSnippet}`,
+    parameters: { max_new_tokens: 500, temperature: 0.2 }
+  };
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!resp.ok) {
+    const txt = await resp.text();
+    throw new Error(`Hugging Face Inference error: ${resp.status} ${txt}`);
+  }
+
+  const j = await resp.json();
+  // HF can return an array of generated outputs or an object
+  if (Array.isArray(j) && j.length > 0) {
+    if (typeof j[0] === 'string') return j[0];
+    if (j[0].generated_text) return j[0].generated_text;
+  }
+  if (j.generated_text) return j.generated_text;
+  if (j.error) throw new Error(j.error);
+  return JSON.stringify(j);
 }
 
 module.exports = async (req, res) => {
