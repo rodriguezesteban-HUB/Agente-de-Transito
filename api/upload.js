@@ -2,39 +2,43 @@ const fs = require('fs');
 const path = require('path');
 const pdf = require('pdf-parse');
 
-async function callOpenAI(extractedText) {
-  const key = process.env.OPENAI_API_KEY;
+async function callAnthropic(extractedText) {
+  const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return null;
 
+  const model = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest';
   const maxSnippet = extractedText.slice(0, 30000);
   const systemPrompt = `Eres un asistente formal que resume y analiza multas de tránsito. Devuelve: 1) Resumen ejecutivo (3-5 líneas). 2) Posibles infracciones detectadas. 3) Siguientes pasos recomendados (legales y prácticos). Sé claro y directo.`;
 
   const body = {
-    model: 'gpt-3.5-turbo',
+    model,
+    max_tokens: 800,
+    system: systemPrompt,
     messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: `Aquí está el texto extraído del PDF de la multa:\n\n${maxSnippet}` }
-    ],
-    temperature: 0.2,
-    max_tokens: 800
+      {
+        role: 'user',
+        content: `Aquí está el texto extraído del PDF de la multa:\n\n${maxSnippet}`
+      }
+    ]
   };
 
-  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${key}`
+      'content-type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify(body)
   });
 
   if (!resp.ok) {
     const txt = await resp.text();
-    throw new Error(`OpenAI error: ${resp.status} ${txt}`);
+    throw new Error(`Anthropic error: ${resp.status} ${txt}`);
   }
 
   const j = await resp.json();
-  return j?.choices?.[0]?.message?.content || null;
+  return j?.content?.[0]?.text || null;
 }
 
 async function callHuggingFace(extractedText) {
@@ -94,10 +98,10 @@ module.exports = async (req, res) => {
       extractedText = '';
     }
 
-    // If OpenAI key present, call model
+    // If Anthropic key present, call model
     let modelResponse = null;
     try {
-      modelResponse = await callOpenAI(extractedText);
+      modelResponse = await callAnthropic(extractedText);
     } catch (err) {
       modelResponse = `Model call failed: ${err.message}`;
     }
