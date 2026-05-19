@@ -23,7 +23,7 @@
     <p class="lead">Formulario formal y ejecutivo para subir su multa. El archivo se enviará al endpoint seguro configurado para despliegue en Vercel.</p>
 
     <label for="pdf">Adjunte el PDF de la multa</label>
-    <input id="pdf" type="file" accept="application/pdf" />
+    <input id="pdf" type="file" accept=".pdf,application/pdf,application/x-pdf" />
 
     <div style="margin-top:16px">
       <button id="upload">Subir PDF</button>
@@ -39,12 +39,31 @@
     const btn = document.getElementById('upload');
     const out = document.getElementById('out');
 
-    btn.addEventListener('click', async ()=>{
-      if(!input.files || input.files.length===0){ alert('Seleccione un PDF'); return }
-      const file = input.files[0];
-      if(file.type !== 'application/pdf'){ alert('El archivo debe ser PDF'); return }
+    input.addEventListener('change', () => {
+      out.style.display = 'none';
+      out.textContent = '';
+    });
 
-      out.style.display='block'; out.textContent='Preparando archivo...';
+    btn.addEventListener('click', async ()=>{
+      if(!input.files || input.files.length===0){
+        out.style.display='block';
+        out.textContent='Primero selecciona un archivo PDF en "Seleccionar archivo".';
+        return;
+      }
+
+      const file = input.files[0];
+      const isPdfByType = ['application/pdf', 'application/x-pdf'].includes(file.type || '');
+      const isPdfByName = /\.pdf$/i.test(file.name || '');
+
+      if(!isPdfByType && !isPdfByName){
+        out.style.display='block';
+        out.textContent='El archivo debe ser un PDF válido (.pdf).';
+        return;
+      }
+
+      out.style.display='block';
+      out.textContent='Preparando archivo...';
+
       const reader = new FileReader();
       reader.onload = async ()=>{
         const base64 = reader.result.split(',')[1];
@@ -56,9 +75,11 @@
             body: JSON.stringify({filename: file.name, data: base64})
           });
           const j = await res.json();
-          if(res.ok) out.textContent = 'Subido con éxito. Ruta temporal: ' + (j.path||'')
-          else out.textContent = 'Error: ' + (j.error||'Respuesta no OK')
-        }catch(e){ out.textContent = 'Error de red: '+e.message }
+          if(res.ok) out.textContent = 'Subido con éxito. Ruta temporal: ' + (j.path||'');
+          else out.textContent = 'Error: ' + (j.error||'Respuesta no OK');
+        }catch(e){
+          out.textContent = 'Error de red: '+e.message;
+        }
       };
       reader.readAsDataURL(file);
     });
