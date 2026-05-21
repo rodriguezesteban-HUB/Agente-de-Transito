@@ -6,13 +6,53 @@ async function callAnthropic(extractedText) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return null;
 
-  const model = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest';
+  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
   const maxSnippet = extractedText.slice(0, 30000);
-  const systemPrompt = `Eres un asistente formal que resume y analiza multas de tránsito. Devuelve: 1) Resumen ejecutivo (3-5 líneas). 2) Posibles infracciones detectadas. 3) Siguientes pasos recomendados (legales y prácticos). Sé claro y directo.`;
+  const systemPrompt = `
+Eres un extractor de información de comparendos/multas de tránsito en Colombia.
+Tu tarea es convertir texto OCR/PDF en datos estructurados.
+Responde SOLO JSON válido (sin markdown, sin explicación).
+
+Reglas:
+- Si un campo no aparece, usa null.
+- Monedas en COP como entero sin símbolos (ej: 572600).
+- Conserva fechas y horas tal como aparezcan.
+- No inventes datos.
+- Incluye validación de totales.
+
+Esquema exacto de salida:
+{
+  "documento": {
+    "tipo_documento": "estado_cuenta|comparendo|otro",
+    "fecha_expedicion": "string|null",
+    "cedula": "string|null"
+  },
+  "multas": [
+    {
+      "numero_multa": "string|null",
+      "fecha": "string|null",
+      "hora": "string|null",
+      "ciudad_o_secretaria": "string|null",
+      "codigo_infraccion": "string|null",
+      "estado": "string|null",
+      "valor_cop": 0
+    }
+  ],
+  "totales": {
+    "cantidad_multas": 0,
+    "total_reportado_cop": 0,
+    "suma_items_cop": 0,
+    "coincide_total": true
+  },
+  "resumen_ejecutivo": "string",
+  "alertas": ["string"]
+}
+`;
 
   const body = {
     model,
     max_tokens: 800,
+    temperature: 0.1,
     system: systemPrompt,
     messages: [
       {
@@ -38,7 +78,20 @@ async function callAnthropic(extractedText) {
   }
 
   const j = await resp.json();
-  return j?.content?.[0]?.text || null;
+  const raw = j?.content?.[0]?.text || null;
+  if (!raw) return null;
+
+  const cleaned = raw
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
+  try {
+    return JSON.stringify(JSON.parse(cleaned), null, 2);
+  } catch {
+    return cleaned;
+  }
 }
 
 async function callHuggingFace(extractedText) {

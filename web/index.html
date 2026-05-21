@@ -5,82 +5,548 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Agente de Tránsito — Subir Multa (PDF)</title>
   <style>
-    body{font-family:Inter,Arial,Helvetica,sans-serif;background:#f6f7f9;color:#111;margin:0;padding:40px}
-    .card{max-width:700px;margin:40px auto;background:#fff;border-radius:8px;box-shadow:0 6px 24px rgba(22,23,24,.08);padding:32px}
-    h1{margin:0 0 12px;font-size:22px}
-    p.lead{margin:0 0 20px;color:#555}
-    label{display:block;margin-bottom:8px;font-weight:600}
-    .row{display:flex;gap:12px}
-    input[type=file]{padding:6px}
-    button{background:#0b5fff;color:#fff;border:0;padding:10px 16px;border-radius:6px;font-weight:600;cursor:pointer}
-    .note{margin-top:12px;color:#666;font-size:13px}
-    .result{margin-top:16px;padding:12px;border-radius:6px;background:#f3f6ff;color:#0b3fff}
+    :root {
+      --ink: #10243b;
+      --ink-soft: #415265;
+      --paper: #f4f7fb;
+      --card: #ffffff;
+      --line: #d9e2ec;
+      --accent: #0f766e;
+      --accent-2: #ea580c;
+      --good: #0a7a4f;
+      --bad: #b42318;
+      --shadow: 0 18px 40px rgba(16, 36, 59, 0.15);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at -10% -20%, #d6efe6 0%, transparent 60%),
+        radial-gradient(900px 500px at 110% 0%, #ffe8d7 0%, transparent 55%),
+        linear-gradient(180deg, #f9fbff 0%, #eef3f8 100%);
+      min-height: 100vh;
+      padding: 32px 18px 56px;
+    }
+
+    .page {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid rgba(15, 118, 110, 0.18);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      animation: rise .5s ease both;
+    }
+
+    .hero {
+      padding: 28px 28px 24px;
+      background:
+        linear-gradient(135deg, rgba(15, 118, 110, 0.14), rgba(234, 88, 12, 0.14));
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 2.8vw, 2rem);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+
+    .hero p {
+      margin: 10px 0 0;
+      max-width: 68ch;
+      color: var(--ink-soft);
+      font-size: 1.01rem;
+      line-height: 1.45;
+    }
+
+    .hero-badges {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      border-radius: 999px;
+      padding: 7px 11px;
+      border: 1px solid transparent;
+    }
+
+    .badge-main {
+      background: rgba(15, 118, 110, 0.13);
+      color: #0b5d57;
+      border-color: rgba(15, 118, 110, 0.3);
+    }
+
+    .badge-alt {
+      background: rgba(234, 88, 12, 0.11);
+      color: #b6460a;
+      border-color: rgba(234, 88, 12, 0.32);
+    }
+
+    .upload-area {
+      padding: 24px 28px 30px;
+      display: grid;
+      gap: 16px;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      font-size: 1.03rem;
+      margin-bottom: 8px;
+    }
+
+    input[type=file] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .cta-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 18px;
+      background: linear-gradient(135deg, #0f766e, #0b5d57);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .12s ease, box-shadow .2s ease;
+      box-shadow: 0 8px 20px rgba(15, 118, 110, .3);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(15, 118, 110, .35);
+    }
+
+    button:disabled {
+      opacity: .65;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .helper {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: .93rem;
+    }
+
+    .result {
+      margin-top: 8px;
+      display: none;
+      border-top: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      padding: 22px 28px 28px;
+    }
+
+    .status {
+      font-weight: 700;
+      padding: 11px 13px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      border: 1px solid transparent;
+    }
+
+    .status.info {
+      background: #eef5ff;
+      color: #163f7a;
+      border-color: #c9ddff;
+    }
+
+    .status.ok {
+      background: #eaf8f0;
+      color: #11663f;
+      border-color: #bfe8cf;
+    }
+
+    .status.error {
+      background: #fff0ee;
+      color: #8a1d1d;
+      border-color: #f5c9c5;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin: 12px 0 16px;
+    }
+
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 12px;
+    }
+
+    .kpi .label {
+      font-size: .78rem;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .kpi .value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .kpi.good .value { color: var(--good); }
+    .kpi.bad .value { color: var(--bad); }
+
+    .section {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 14px;
+      margin-top: 10px;
+    }
+
+    .section h3 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      letter-spacing: -0.01em;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 8px;
+    }
+
+    .meta {
+      background: #f9fbff;
+      border: 1px solid #e7eef9;
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .meta .k {
+      display: block;
+      font-size: .73rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #567;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    .meta .v {
+      display: block;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.94rem;
+    }
+
+    th, td {
+      padding: 9px 8px;
+      border-bottom: 1px solid #edf2f8;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      font-size: .75rem;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: #4f657a;
+    }
+
+    .alerts {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .alerts li {
+      line-height: 1.35;
+      color: #27384f;
+    }
+
+    details {
+      margin-top: 10px;
+    }
+
+    summary {
+      cursor: pointer;
+      color: #30567f;
+      font-weight: 700;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #f3f7fd;
+      border: 1px solid #dce7f8;
+      color: #22385b;
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 10px;
+      max-height: 320px;
+      overflow: auto;
+      font-size: 0.9rem;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 14px 10px 24px; }
+      .hero, .upload-area, .result { padding-left: 16px; padding-right: 16px; }
+      table { font-size: .86rem; }
+      th, td { padding: 7px 6px; }
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Subir multa en PDF</h1>
-    <p class="lead">Formulario formal y ejecutivo para subir su multa. El archivo se enviará al endpoint seguro configurado para despliegue en Vercel.</p>
+  <main class="page">
+    <section class="panel">
+      <header class="hero">
+        <h1>Agente de Tránsito</h1>
+        <p>Sube tu estado de cuenta o comparendo en PDF y recibe un reporte estructurado: documento, multas, totales, alertas y resumen ejecutivo.</p>
+        <div class="hero-badges">
+          <span class="badge badge-main">Extracción</span>
+          <span class="badge badge-main">Validación</span>
+          <span class="badge badge-alt">Análisis LLM</span>
+        </div>
+      </header>
 
-    <label for="pdf">Adjunte el PDF de la multa</label>
-    <input id="pdf" type="file" accept=".pdf,application/pdf,application/x-pdf" />
+      <div class="upload-area">
+        <div>
+          <label for="pdf">Adjunte el PDF de la multa</label>
+          <input id="pdf" type="file" accept=".pdf,application/pdf" />
+        </div>
 
-    <div style="margin-top:16px">
-      <button id="upload">Subir PDF</button>
-    </div>
+        <div class="cta-row">
+          <button id="upload">Procesar PDF</button>
+          <p class="helper">Formato aceptado: PDF. Si el archivo es escaneado y no tiene texto, puede requerir OCR.</p>
+        </div>
+      </div>
 
-    <div class="note">Formato aceptado: PDF. Tamaño máximo: según configuración del servidor.</div>
-
-    <div id="out" class="result" style="display:none"></div>
-  </div>
+      <section id="out" class="result"></section>
+    </section>
+  </main>
 
   <script>
     const input = document.getElementById('pdf');
     const btn = document.getElementById('upload');
     const out = document.getElementById('out');
 
-    input.addEventListener('change', () => {
-      out.style.display = 'none';
-      out.textContent = '';
-    });
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
-    btn.addEventListener('click', async ()=>{
-      if(!input.files || input.files.length===0){
-        out.style.display='block';
-        out.textContent='Primero selecciona un archivo PDF en "Seleccionar archivo".';
+    function asText(value, fallback = 'No disponible') {
+      if (value === null || value === undefined || value === '') return fallback;
+      return String(value);
+    }
+
+    function toCop(value) {
+      const num = Number(value);
+      if (!Number.isFinite(num)) return 'No disponible';
+      return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        maximumFractionDigits: 0
+      }).format(num);
+    }
+
+    function showStatus(message, tone) {
+      out.style.display = 'block';
+      out.innerHTML = '<div class="status ' + tone + '">' + escapeHtml(message) + '</div>';
+    }
+
+    function parseModelJson(rawText) {
+      if (!rawText) return null;
+      try {
+        return JSON.parse(rawText);
+      } catch {
+        const match = rawText.match(/\{[\s\S]*\}$/);
+        if (!match) return null;
+        try {
+          return JSON.parse(match[0]);
+        } catch {
+          return null;
+        }
+      }
+    }
+
+    function renderReport(payload, rawModelText) {
+      const doc = payload?.documento || {};
+      const multas = Array.isArray(payload?.multas) ? payload.multas : [];
+      const tot = payload?.totales || {};
+      const alertas = Array.isArray(payload?.alertas) ? payload.alertas : [];
+      const resumen = asText(payload?.resumen_ejecutivo, 'No se generó resumen ejecutivo.');
+
+      const multasRows = multas.length
+        ? multas.map((m) =>
+            '<tr>' +
+            '<td>' + escapeHtml(asText(m.numero_multa)) + '</td>' +
+            '<td>' + escapeHtml(asText(m.fecha)) + '</td>' +
+            '<td>' + escapeHtml(asText(m.hora)) + '</td>' +
+            '<td>' + escapeHtml(asText(m.ciudad_o_secretaria)) + '</td>' +
+            '<td>' + escapeHtml(asText(m.codigo_infraccion)) + '</td>' +
+            '<td>' + escapeHtml(asText(m.estado)) + '</td>' +
+            '<td>' + escapeHtml(toCop(m.valor_cop)) + '</td>' +
+            '</tr>'
+          ).join('')
+        : '<tr><td colspan="7">No se detectaron multas en el documento.</td></tr>';
+
+      const alertasHtml = alertas.length
+        ? '<ul class="alerts">' + alertas.map((a) => '<li>' + escapeHtml(asText(a)) + '</li>').join('') + '</ul>'
+        : '<p>No hay alertas.</p>';
+
+      const coincide = tot.coincide_total === true;
+      const coincideLabel = coincide ? 'Sí' : (tot.coincide_total === false ? 'No' : 'No disponible');
+      const coincideClass = coincide ? 'good' : 'bad';
+
+      out.style.display = 'block';
+      out.innerHTML =
+        '<div class="status ok">Subida completada y análisis generado.</div>' +
+
+        '<div class="kpis">' +
+          '<article class="kpi"><div class="label">Multas detectadas</div><div class="value">' + escapeHtml(asText(tot.cantidad_multas, multas.length)) + '</div></article>' +
+          '<article class="kpi"><div class="label">Total reportado</div><div class="value">' + escapeHtml(toCop(tot.total_reportado_cop)) + '</div></article>' +
+          '<article class="kpi"><div class="label">Suma de items</div><div class="value">' + escapeHtml(toCop(tot.suma_items_cop)) + '</div></article>' +
+          '<article class="kpi ' + coincideClass + '"><div class="label">Validación total</div><div class="value">' + escapeHtml(coincideLabel) + '</div></article>' +
+        '</div>' +
+
+        '<section class="section">' +
+          '<h3>Documento</h3>' +
+          '<div class="meta-grid">' +
+            '<div class="meta"><span class="k">Tipo</span><span class="v">' + escapeHtml(asText(doc.tipo_documento)) + '</span></div>' +
+            '<div class="meta"><span class="k">Fecha de expedición</span><span class="v">' + escapeHtml(asText(doc.fecha_expedicion)) + '</span></div>' +
+            '<div class="meta"><span class="k">Cédula</span><span class="v">' + escapeHtml(asText(doc.cedula)) + '</span></div>' +
+          '</div>' +
+        '</section>' +
+
+        '<section class="section">' +
+          '<h3>Comparendos y multas</h3>' +
+          '<table>' +
+            '<thead><tr><th>Número</th><th>Fecha</th><th>Hora</th><th>Secretaría / Ciudad</th><th>Infracción</th><th>Estado</th><th>Valor</th></tr></thead>' +
+            '<tbody>' + multasRows + '</tbody>' +
+          '</table>' +
+        '</section>' +
+
+        '<section class="section">' +
+          '<h3>Resumen ejecutivo</h3>' +
+          '<p>' + escapeHtml(resumen) + '</p>' +
+        '</section>' +
+
+        '<section class="section">' +
+          '<h3>Alertas</h3>' +
+          alertasHtml +
+        '</section>' +
+
+        '<details class="section"><summary>Ver JSON bruto del modelo</summary><pre>' + escapeHtml(rawModelText || '') + '</pre></details>';
+    }
+
+    btn.addEventListener('click', async () => {
+      if (!input.files || input.files.length === 0) {
+        showStatus('Primero selecciona un archivo PDF.', 'error');
         return;
       }
 
       const file = input.files[0];
-      const isPdfByType = ['application/pdf', 'application/x-pdf'].includes(file.type || '');
+      const isPdfByType = file.type === 'application/pdf';
       const isPdfByName = /\.pdf$/i.test(file.name || '');
-
-      if(!isPdfByType && !isPdfByName){
-        out.style.display='block';
-        out.textContent='El archivo debe ser un PDF válido (.pdf).';
+      if (!isPdfByType && !isPdfByName) {
+        showStatus('El archivo debe ser un PDF válido (.pdf).', 'error');
         return;
       }
 
-      out.style.display='block';
-      out.textContent='Preparando archivo...';
-
+      btn.disabled = true;
+      showStatus('Preparando archivo para análisis...', 'info');
       const reader = new FileReader();
-      reader.onload = async ()=>{
+
+      reader.onload = async () => {
         const base64 = reader.result.split(',')[1];
-        out.textContent='Subiendo...';
-        try{
+        showStatus('Subiendo y procesando documento...', 'info');
+
+        try {
           const res = await fetch('/api/upload', {
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({filename: file.name, data: base64})
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: file.name, data: base64 })
           });
-          const j = await res.json();
-          if(res.ok) out.textContent = 'Subido con éxito. Ruta temporal: ' + (j.path||'');
-          else out.textContent = 'Error: ' + (j.error||'Respuesta no OK');
-        }catch(e){
-          out.textContent = 'Error de red: '+e.message;
+
+          const raw = await res.text();
+          let responseJson;
+
+          try {
+            responseJson = JSON.parse(raw);
+          } catch {
+            throw new Error('El servidor devolvió una respuesta no JSON.');
+          }
+
+          if (!res.ok) {
+            showStatus('Error: ' + asText(responseJson.error, 'Respuesta no OK'), 'error');
+            return;
+          }
+
+          const modelResponse = asText(responseJson.modelResponse, 'Sin respuesta del modelo');
+          const parsed = parseModelJson(modelResponse);
+
+          if (parsed) {
+            renderReport(parsed, modelResponse);
+          } else {
+            out.style.display = 'block';
+            out.innerHTML =
+              '<div class="status ok">Subida completada.</div>' +
+              '<section class="section"><h3>Respuesta del modelo</h3><pre>' + escapeHtml(modelResponse) + '</pre></section>';
+          }
+        } catch (error) {
+          showStatus('Error de red: ' + error.message, 'error');
+        } finally {
+          btn.disabled = false;
         }
       };
+
       reader.readAsDataURL(file);
     });
   </script>
